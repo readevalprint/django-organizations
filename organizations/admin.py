@@ -43,7 +43,6 @@ class OrganizationForm(ModelForm):
             pass
     
     def clean(self):
-
         cleaned_data = super(OrganizationForm, self).clean()
         organization_owner = cleaned_data.get('organization_owner')
         organization_users = set(cleaned_data.get('organization_users', ''))    
@@ -108,8 +107,12 @@ class OrganizationForm(ModelForm):
                 pass
 
         return super(OrganizationForm, self).save(*args, **kwargs)
+
+class OwnerInline(admin.StackedInline):
+    model = OrganizationOwner
         
 class OrganizationAdmin(admin.ModelAdmin):
+    inlines = [OwnerInline]    
     form= OrganizationForm
     list_display = ['name', 'is_active']
     prepopulated_fields = {"slug": ("name",)}
@@ -120,7 +123,7 @@ class OrganizationUserAdmin(admin.ModelAdmin):
     search_fields = ['user__username', 'organization__name']
 
 class OrganizationOwnerAdmin(admin.ModelAdmin):
-    list_filter = ['organization']
+    pass
 
 
 admin.site.register(Organization, OrganizationAdmin)

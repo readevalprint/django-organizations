@@ -3,9 +3,7 @@ import uuid
 from django.conf import settings
 from django.conf.urls.defaults import patterns, url
 from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import EmailMessage
 from django.http import Http404
 from django.shortcuts import render, redirect
@@ -15,7 +13,9 @@ from django.utils.translation import ugettext as _
 from organizations.backends.tokens import RegistrationTokenGenerator
 from organizations.backends.forms import (UserRegistrationForm,
         OrganizationRegistrationForm)
+from organizations.models import get_user_model
 from organizations.utils import create_organization
+from organizations.utils import model_field_attr
 
 
 # Backend classes should provide common interface
@@ -24,6 +24,9 @@ from organizations.utils import create_organization
 class BaseBackend(object):
     """Base backend class for registering and inviting users to an organization
     """
+
+    def __init__(self, *args, **kwargs):
+        self.user_model = get_user_model()
 
     def get_urls(self):
         raise NotImplementedError
@@ -35,7 +38,7 @@ class BaseBackend(object):
     def get_form(self, **kwargs):
         """Returns the form for registering or inviting a user"""
         if not hasattr(self, 'form_class'):
-            raise AttributeError("You must define a form_class")
+            raise AttributeError(_("You must define a form_class"))
         return self.form_class(**kwargs)
 
     def get_token(self, user, **kwargs):
@@ -43,7 +46,8 @@ class BaseBackend(object):
         return RegistrationTokenGenerator().make_token(user)
 
     def get_username(self):
-        return unicode(uuid.uuid4()).replace("-", "")[:30]
+        """Returns an UUID based 'random' and unique username"""
+        return unicode(uuid.uuid4())[:model_field_attr(self.user_model, 'username', 'max_length')]
 
     def activate_view(self, request, user_id, token):
         """
@@ -51,8 +55,8 @@ class BaseBackend(object):
         information is verified.
         """
         try:
-            user = User.objects.get(id=user_id, is_active=False)
-        except User.DoesNotExist:
+            user = self.user_model.objects.get(id=user_id, is_active=False)
+        except self.user_model.DoesNotExist:
             raise Http404(_("Your URL may have expired."))
         if not RegistrationTokenGenerator().check_token(user, token):
             raise Http404(_("Your URL may have expired."))
@@ -81,17 +85,16 @@ class BaseBackend(object):
     def _send_email(self, user, subject_template, body_template,
             sender=None, **kwargs):
         """Utility method for sending emails to new users"""
-        try:
-            from_email = settings.DEFAULT_FROM_EMAIL
-        except AttributeError:
-            raise ImproperlyConfigured(_("You must define DEFAULT_FROM_EMAIL in your settings"))
-
         if sender:
             from_email = "%s %s <%s>" % (sender.first_name, sender.last_name,
-                    from_email)
+                    settings.DEFAULT_FROM_EMAIL)
             reply_to = "%s %s <%s>" % (sender.first_name, sender.last_name,
                     sender.email)
-        headers = {'Reply-To': reply_to} if sender else {}
+        else:
+            from_email = settings.DEFAULT_FROM_EMAIL
+            reply_to = {}
+
+        headers = {'Reply-To': reply_to}
 
         kwargs.update({'sender': sender, 'user': user})
         ctx = Context(kwargs)
@@ -108,6 +111,8 @@ class RegistrationBackend(BaseBackend):
     """A backend for allowing new users to join the site by creating a new user
     associated with a new organization.
     """
+    # NOTE this backend stands to be simplified further, as email verification
+    # should be beyond the purview of this app
     activation_subject = 'organizations/email/activation_subject.txt'
     activation_body = 'organizations/email/activation_body.html'
     reminder_subject = 'organizations/email/reminder_subject.txt'
@@ -132,10 +137,10 @@ class RegistrationBackend(BaseBackend):
         an invitation email.
         """
         try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            user = User.objects.create(username=self.get_username(),
-                    email=email)
+            user = self.user_model.objects.get(email=email)
+        except self.user_model.DoesNotExist:
+            user = self.user_model.objects.create(username=self.get_username(),
+                    email=email, password=self.user_model.objects.make_random_password())
             user.is_active = False
             user.save()
         self.send_activation(user, sender, **kwargs)
@@ -161,10 +166,11 @@ class RegistrationBackend(BaseBackend):
         form = OrganizationRegistrationForm(request.POST or None)
         if form.is_valid():
             try:
-                user = User.objects.get(email=form.cleaned_data['email'])
-            except User.DoesNotExist:
-                user = User.objects.create(username=self.get_username(),
-                        email=form.cleaned_data['email'])
+                user = self.user_model.objects.get(email=form.cleaned_data['email'])
+            except self.user_model.DoesNotExist:
+                user = self.user_model.objects.create(username=self.get_username(),
+                        email=form.cleaned_data['email'],
+                        password=self.user_model.objects.make_random_password())
                 user.is_active = False
                 user.save()
             else:
@@ -207,10 +213,10 @@ class InvitationBackend(BaseBackend):
         extend this method as it only checks the `email` attribute for Users.
         """
         try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            user = User.objects.create(username=self.get_username(),
-                    email=email)
+            user = self.user_model.objects.get(email=email)
+        except self.user_model.DoesNotExist:
+            user = self.user_model.objects.create(username=self.get_username(),
+                    email=email, password=self.user_model.objects.make_random_password())
             user.is_active = False
             user.save()
         self.send_invitation(user, sender, **kwargs)

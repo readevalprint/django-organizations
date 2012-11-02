@@ -1,21 +1,28 @@
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.db import models
-from django.db.models import permalink
-from django.contrib.auth.models import User
+from django.db.models import permalink, get_model
 from django.utils.translation import ugettext_lazy as _
 
+from django_extensions.db.fields import AutoSlugField
+from django_extensions.db.models import TimeStampedModel
 from organizations.managers import OrgManager, ActiveOrgManager
 
 
-class OrganizationsBase(models.Model):
-    """Timestamped base for Organization models"""
-    created = models.DateTimeField(auto_now_add=True)
-    modified = models.DateTimeField(auto_now=True)
+def get_user_model():
+    """Returns the User model which should be used. This functionality won't be
+    built-in until Django 1.5.
+    """
+    klass_string = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
+    try:
+        klass = get_model(klass_string.split('.')[0],
+                klass_string.split('.')[1])
+    except:
+        raise ImproperlyConfigured(_("Your user class is improperly defined"))
+    return klass
 
-    class Meta:
-        abstract = True
 
-
-class Organization(OrganizationsBase):
+class Organization(TimeStampedModel):
     """The umbrella object with which users can be associated.
 
     An organization can have multiple users but only one who can be designated
@@ -24,9 +31,10 @@ class Organization(OrganizationsBase):
     """
     name = models.CharField(max_length=100,
             help_text=_("The name of the organization"))
-    slug = models.SlugField(max_length=100, unique=True,
+    slug = AutoSlugField(max_length=100, blank=False, editable=True,
+            populate_from='name', unique=True,
             help_text=_("The name in all lowercase, suitable for URL identification"))
-    users = models.ManyToManyField(User, through="OrganizationUser")
+    users = models.ManyToManyField(get_user_model(), through="OrganizationUser")
     is_active = models.BooleanField(default=True)
 
     objects = OrgManager()
@@ -68,7 +76,7 @@ class Organization(OrganizationsBase):
         return True if user in OrganizationOwner.objects.filter(organization=self, user=user) else False
 
 
-class OrganizationUser(OrganizationsBase):
+class OrganizationUser(TimeStampedModel):
     """ManyToMany through field relating Users to Organizations.
 
     It is possible for a User to be a member of multiple organizations, so this
@@ -79,7 +87,7 @@ class OrganizationUser(OrganizationsBase):
     and the contrib.auth application.
 
     """
-    user = models.ForeignKey(User, related_name="organization_users")
+    user = models.ForeignKey(get_user_model(), related_name="organization_users")
     organization = models.ForeignKey(Organization,
             related_name="organization_users")
     is_admin = models.BooleanField(default=False)
@@ -111,12 +119,12 @@ class OrganizationUser(OrganizationsBase):
 
     @property
     def name(self):
-        if self.user.first_name and self.user.last_name:
-            return u"{0} {1}".format(self.user.first_name, self.user.last_name)
-        return self.user.username
+        if hasattr(self.user, 'get_full_name'):
+            return self.user.get_full_name()
+        return "{0}".format(self.user)
 
 
-class OrganizationOwner(OrganizationsBase):
+class OrganizationOwner(TimeStampedModel):
     """Each organization must have one and only one organization owner."""
 
     organization = models.OneToOneField(Organization, related_name="owner")

@@ -12,10 +12,12 @@ from organizations.backends.defaults import (BaseBackend, InvitationBackend,
 from organizations.backends.tokens import RegistrationTokenGenerator
 
 
+@override_settings(USE_TZ=True)
 class BaseTests(TestCase):
 
     def test_generate_username(self):
         self.assertTrue(BaseBackend().get_username())
+
 
 @override_settings(USE_TZ=True)
 class InvitationTests(TestCase):
