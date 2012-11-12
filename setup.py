@@ -6,7 +6,7 @@ setup(
     author="Ben Lopatin",
     author_email="ben.lopatin@wellfireinteractive.com",
     name='django-organizations',
-    version='0.1.4',
+    version='0.1.4a',
     description='Group accounts for Django',
     long_description=open(os.path.join(os.path.dirname(__file__),
         'README.rst')).read(),
@@ -14,7 +14,7 @@ setup(
     license='BSD License',
     platforms=['OS Independent'],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
