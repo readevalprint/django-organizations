@@ -9,6 +9,7 @@ from django.http import Http404
 from django.shortcuts import render, redirect
 from django.template import Context, loader
 from django.utils.translation import ugettext as _
+from django.contrib.auth.models import User
 
 from organizations.backends.tokens import RegistrationTokenGenerator
 from organizations.backends.forms import (UserRegistrationForm,
