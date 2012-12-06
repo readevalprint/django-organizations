@@ -82,7 +82,7 @@ class OrganizationUserAddForm(forms.ModelForm):
                         'sender': self.request.user})
         else:
             notification_backend().notify_by_email(self.cleaned_data['email'],
-                    **{'site': get_current_site(self.request),
+                    **{'domain': get_current_site(self.request),
                         'organization': self.organization,
                         'sender': self.request.user})
 
