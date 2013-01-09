@@ -60,7 +60,6 @@ class MembershipRequiredMixin(OrganizationMixin):
         self.kwargs = kwargs
         self.organization = self.get_organization()
         if not self.organization.is_member(request.user):
-            context = self.get_context_data()
             return HttpResponseForbidden(_("Whoops, wrong organization"))
         return super(MembershipRequiredMixin, self).dispatch(request, *args,
                 **kwargs)
