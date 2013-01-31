@@ -77,7 +77,7 @@ class OrganizationUserAddForm(forms.ModelForm):
         except get_user_model().DoesNotExist:
             user = invitation_backend().invite_by_email(
                     self.cleaned_data['email'],
-                    **{'site': get_current_site(self.request),
+                    **{'domain': get_current_site(self.request),
                         'organization': self.organization,
                         'sender': self.request.user})
         else:
