@@ -102,7 +102,7 @@ class Organization(TimeStampedModel):
         return True if self.organization_users.filter(user=user, is_admin=True) else False
 
     def is_owner(self, user):
-        return True if user in OrganizationOwner.objects.filter(organization=self, user=user) else False
+        return True if self.owner.organization_user.user == user else False
 
 
 class OrganizationUser(TimeStampedModel):
