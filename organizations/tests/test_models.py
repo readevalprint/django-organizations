@@ -51,6 +51,11 @@ class OrgModelTests(TestCase):
         self.assertFalse(self.nirvana.is_admin(self.dave))
         self.assertTrue(self.foo.is_admin(self.dave))
 
+    def test_is_owner(self):
+        self.assertTrue(self.foo.is_owner(self.dave))
+        self.assertTrue(self.nirvana.is_owner(self.kurt))
+        self.assertFalse(self.nirvana.is_owner(self.krist))
+
     def test_add_user(self):
         new_guy = self.foo.add_user(self.krist)
         self.assertTrue(isinstance(new_guy, OrganizationUser))
