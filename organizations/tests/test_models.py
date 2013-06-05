@@ -44,17 +44,39 @@ class OrgModelTests(TestCase):
         self.assertTrue(self.nirvana.is_member(self.dave))
         self.assertTrue(self.foo.is_member(self.dave))
         self.assertFalse(self.foo.is_member(self.kurt))
+        # Does the method still work when there are 
+        # no associated OrganizationUsers?
+        self.foo.owner.delete()
+        for org_user in self.foo.organization_users.all():
+            org_user.delete()
+        self.assertFalse(
+            Organization.objects.get(name="Foo Fighters").is_member(self.dave)
+        )
 
     def test_is_admin(self):
         self.assertTrue(self.nirvana.is_admin(self.kurt))
         self.assertTrue(self.nirvana.is_admin(self.krist))
         self.assertFalse(self.nirvana.is_admin(self.dave))
         self.assertTrue(self.foo.is_admin(self.dave))
+        # Does the method still work when there are 
+        # no associated OrganizationUsers?
+        self.foo.owner.delete()
+        for org_user in self.foo.organization_users.all():
+            org_user.delete()
+        self.assertFalse(
+            Organization.objects.get(name="Foo Fighters").is_admin(self.dave)
+        )
+
 
     def test_is_owner(self):
         self.assertTrue(self.foo.is_owner(self.dave))
         self.assertTrue(self.nirvana.is_owner(self.kurt))
         self.assertFalse(self.nirvana.is_owner(self.krist))
+        # Does the method work when there are no owners?
+        self.foo.owner.delete()
+        self.assertFalse(
+            Organization.objects.get(name="Foo Fighters").is_owner(self.dave)
+        )
 
     def test_add_user(self):
         new_guy = self.foo.add_user(self.krist)

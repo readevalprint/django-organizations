@@ -96,13 +96,13 @@ class Organization(TimeStampedModel):
         return org_user, created
 
     def is_member(self, user):
-        return True if user in self.users.all() else False
+        return user in self.users.all()
 
     def is_admin(self, user):
-        return True if self.organization_users.filter(user=user, is_admin=True) else False
+        return self.organization_users.filter(user=user, is_admin=True).count() >= 1
 
     def is_owner(self, user):
-        return self.owner.organization_user.user == user
+        return OrganizationOwner.objects.filter(organization=self, organization_user__user=user).count() >= 1
 
 
 class OrganizationUser(TimeStampedModel):
