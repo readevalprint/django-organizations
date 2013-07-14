@@ -64,7 +64,7 @@ class OrganizationUserMixin(OrganizationMixin):
         return self.organization_user
 
 
-class MembershipRequiredMixin(object):
+class MembershipRequiredMixin(OrganizationMixin):
     """This mixin presumes that authentication has already been checked"""
 
     def dispatch(self, request, *args, **kwargs):
@@ -79,7 +79,7 @@ class MembershipRequiredMixin(object):
                 **kwargs)
 
 
-class AdminRequiredMixin(object):
+class AdminRequiredMixin(OrganizationMixin):
     """This mixin presumes that authentication has already been checked"""
 
     def dispatch(self, request, *args, **kwargs):
@@ -94,7 +94,7 @@ class AdminRequiredMixin(object):
                 **kwargs)
 
 
-class OwnerRequiredMixin(object):
+class OwnerRequiredMixin(OrganizationMixin):
     """This mixin presumes that authentication has already been checked"""
 
     def dispatch(self, request, *args, **kwargs):

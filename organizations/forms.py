@@ -4,7 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from organizations.models import Organization, OrganizationUser, get_user_model
 from organizations.utils import create_organization
-from organizations.backends import invitation_backend
+from organizations.backends import invitation_backend, notification_backend
 
 
 class OrganizationForm(forms.ModelForm):
@@ -78,7 +78,14 @@ class OrganizationUserAddForm(forms.ModelForm):
             user = invitation_backend().invite_by_email(
                     self.cleaned_data['email'],
                     **{'domain': get_current_site(self.request),
-                        'organization': self.organization})
+                        'organization': self.organization,
+                        'sender': self.request.user})
+        else:
+            notification_backend().notify_by_email(self.cleaned_data['email'],
+                    **{'domain': get_current_site(self.request),
+                        'organization': self.organization,
+                        'sender': self.request.user})
+
         return OrganizationUser.objects.create(user=user,
                 organization=self.organization,
                 is_admin=self.cleaned_data['is_admin'])

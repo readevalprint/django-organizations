@@ -9,6 +9,7 @@ from django.http import Http404
 from django.shortcuts import render, redirect
 from django.template import Context, loader
 from django.utils.translation import ugettext as _
+from django.contrib.auth.models import User
 
 from organizations.backends.tokens import RegistrationTokenGenerator
 from organizations.backends.forms import (UserRegistrationForm,
@@ -227,7 +228,7 @@ class InvitationBackend(BaseBackend):
             user.save()
         self.send_invitation(user, sender, **kwargs)
         return user
-
+    
     def send_invitation(self, user, sender=None, **kwargs):
         """An intermediary function for sending an invitation email that
         selects the templates, generating the token, and ensuring that the user
@@ -239,3 +240,23 @@ class InvitationBackend(BaseBackend):
         kwargs.update({'token': token})
         self._send_email(user, self.invitation_subject, self.invitation_body,
                 sender, **kwargs)
+
+class NotificationBackend(BaseBackend):
+    """A backend for notifying existing users that they have been added an
+    organization.
+    """
+    notification_subject = 'organizations/email/notification_subject.txt'
+    notification_body = 'organizations/email/notification_body.html'
+    
+    def notify_by_email(self, email, sender=None, request=None, **kwargs):
+        """Sends an active user a notification email
+        """
+        try:
+            user = User.objects.get(email=email)
+            if not user.is_active:
+                return False
+            self._send_email(user, self.notification_subject, self.notification_body,
+                    sender, **kwargs)
+        except User.DoesNotExist:
+            pass
+    
